@@ -6,7 +6,7 @@ from chemdataextractor.model import BaseModel
 from chemdataextractor.parse.cem import solvent_name_options
 from chemdataextractor.text import HYPHENS
 from chemdataextractor.nlp.tokenize import BertWordTokenizer
-import importlib.resources
+from importlib.resources import files
 import re
 from chemdataextractor.parse.auto import construct_unit_element, value_element, match_dimensions_of, \
     create_entities_list
@@ -18,8 +18,8 @@ class Atmosphere(BaseModel):
     parsers = [AutoTableParser(), AutoSentenceParser()]
 
 
-# Load the common film material names used in TADF papers/
-names = importlib.resources.read_text('tadf_models', 'film_material_names', encoding='utf-8')
+# Load the common film material names used in TADF papers.
+names = (files(__package__).parent / "film_material_names").read_text(encoding="utf-8")
 names = [line.split(";") for line in names.split('\n')]
 film_materials = []
 wt = BertWordTokenizer()
