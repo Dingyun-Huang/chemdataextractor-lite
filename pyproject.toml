@@ -16,6 +16,9 @@ dependencies = [
   "nltk>=3.8",
   "pdfminer.six>=20220524",
 ]
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
