@@ -5,7 +5,7 @@ ChemDataExtractor Lite converts scientific HTML, XML, PDF, and plain-text files 
 ## Installation
 
 ```bash
-pip install -e .
+pip install chemdataextractor-lite
 ```
 
 The chemistry-trained sentence model is included in the package, so document loading and segmentation work offline after installation.
