@@ -46,6 +46,7 @@ docs/_build/
 # PyCharm
 .idea/
 .vscode/
+.cursor/
 main.py
 geckodriver.log
 .pytest_cache/
