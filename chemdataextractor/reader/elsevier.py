@@ -24,7 +24,7 @@ import re
 
 def remove_if_reference(el):
     text = el.text
-    check_regex = re.compile('\[\d')
+    check_regex = re.compile(r'\[\d')
     if check_regex.match(text) or text.isnumeric():
         return None
     return el
@@ -96,6 +96,7 @@ class ElsevierXmlReader(XmlReader):
     """Reader for Elsevier XML documents."""
 
     cleaners = [clean, fix_elsevier_xml_whitespace, els_xml_whitespace, strip_els_xml]
+    preserve_raw_table_markup = True
 
     etree.FunctionNamespace("http://www.elsevier.com/xml/svapi/article/dtd").prefix = 'default'
     etree.FunctionNamespace("http://www.elsevier.com/xml/bk/dtd").prefix = 'bk'
@@ -118,6 +119,7 @@ class ElsevierXmlReader(XmlReader):
     heading_css = 'ce|section-title'
     table_css = 'ce|table'
     table_caption_css = 'ce|table ce|caption'
+    table_label_css = 'ce|label'
     table_head_row_css = 'cals|thead cals|row'
     table_body_row_css = 'cals|tbody cals|row'
     table_cell_css = 'ce|entry'

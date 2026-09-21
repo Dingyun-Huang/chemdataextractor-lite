@@ -11,7 +11,7 @@ from __future__ import unicode_literals
 import logging
 
 from ..doc.text import Footnote, Caption
-from ..scrape.pub.rsc import replace_rsc_img_chars
+from ._helpers import replace_rsc_img_chars
 from ..scrape.clean import clean, Cleaner
 from .markup import HtmlReader
 from ..doc.table import Table
@@ -58,6 +58,7 @@ class RscHtmlReader(HtmlReader):
     """Reader for HTML documents from the RSC."""
 
     cleaners = [clean, rsc_html_whitespace, replace_rsc_img_chars, join_rsc_table_captions, strip_rsc_html]
+    preserve_raw_table_markup = True
 
     root_css = 'html'
     title_css = 'h1, .title_heading'

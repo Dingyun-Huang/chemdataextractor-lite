@@ -11,7 +11,7 @@ from __future__ import unicode_literals
 import logging
 
 from ..doc.text import Footnote
-from ..scrape.pub.rsc import replace_rsc_img_chars
+from ._helpers import replace_rsc_img_chars
 from ..scrape.clean import clean
 from .markup import HtmlReader
 

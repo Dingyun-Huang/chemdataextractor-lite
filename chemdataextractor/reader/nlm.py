@@ -10,7 +10,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from ..scrape.clean import clean
-from ..scrape.pub.nlm import tidy_nlm_references, space_labels
+from ._helpers import tidy_nlm_references, space_labels
 from .markup import XmlReader
 
 
@@ -24,6 +24,7 @@ class NlmXmlReader(XmlReader):
     heading_css = 'title'
     table_css = 'table-wrap'
     table_caption_css = 'caption p'
+    table_label_css = 'label'
     table_head_row_css = 'table thead tr'
     table_body_row_css = 'table tbody tr'
     table_footnote_css = 'table-wrap-foot p'
@@ -42,6 +43,13 @@ class NlmXmlReader(XmlReader):
         '{http://www.w3.org/1998/math/mathml}mrow', '{http://www.w3.org/1998/math/mathml}mo',
         '{http://www.w3.org/1998/math/mathml}mi', '{http://www.w3.org/1998/math/mathml}mn'
     }
+
+    def _make_tree(self, fstring):
+        root = super()._make_tree(fstring)
+        for element in root.iter():
+            if isinstance(element.tag, str) and element.tag.startswith("{http://jats.nlm.nih.gov/"):
+                element.tag = element.tag.split("}", 1)[1]
+        return root
 
     def detect(self, fstring, fname=None):
         """"""

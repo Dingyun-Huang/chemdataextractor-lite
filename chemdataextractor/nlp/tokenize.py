@@ -9,18 +9,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 from abc import ABCMeta, abstractmethod
-from deprecation import deprecated
+from importlib import resources
 import logging
+import pickle
 import re
 
 
 
 from ..text import bracket_level, GREEK
-from ..data import load_model, find_data
 
-from lxml import etree
 
-from tokenizers import BertWordPieceTokenizer
+def load_model(name):
+    """Load a trusted tokenizer model bundled with the package."""
+    resource = resources.files("chemdataextractor").joinpath("data", name)
+    with resource.open("rb") as model_file:
+        return pickle.load(model_file)
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +36,6 @@ class BaseTokenizer(metaclass=ABCMeta):
 
     """
 
-    @deprecated(deprecated_in="2.0", details="Deprecated in favour of looking at the tokens from the Sentence object.")
     def tokenize(self, s):
         """Return a list of token strings from the given sentence.
 
@@ -66,7 +68,7 @@ def regex_span_tokenize(s, regex):
 class SentenceTokenizer(BaseTokenizer):
     """Sentence tokenizer that uses the Punkt algorithm by Kiss & Strunk (2006)."""
 
-    model = 'models/punkt_english.pickle'  # This is available from NLTK
+    model = "punkt_chem-1.0.pickle"
 
     def __init__(self, model=None):
         self.model = model if model is not None else self.model
@@ -92,7 +94,7 @@ class SentenceTokenizer(BaseTokenizer):
 
 class ChemSentenceTokenizer(SentenceTokenizer):
     """Sentence tokenizer that uses the Punkt algorithm by Kiss & Strunk (2006), trained on chemistry text."""
-    model = 'models/punkt_chem-1.0.pickle'
+    model = "punkt_chem-1.0.pickle"
 
 
 class WordTokenizer(BaseTokenizer):
@@ -345,7 +347,7 @@ class WordTokenizer(BaseTokenizer):
         """"""
         # First get spans by splitting on all whitespace
         # Includes: \u0020 \u00A0 \u1680 \u180E \u2000 \u2001 \u2002 \u2003 \u2004 \u2005 \u2006 \u2007 \u2008 \u2009 \u200A \u202F \u205F \u3000
-        spans = [(left, right) for left, right in regex_span_tokenize(s, '\s+') if not left == right]
+        spans = [(left, right) for left, right in regex_span_tokenize(s, r'\s+') if not left == right]
         i = 0
         # Recursively split spans according to rules
         while i < len(spans):
@@ -472,9 +474,9 @@ class ChemWordTokenizer(WordTokenizer):
     #: Regular expression that matches a numeric quantity with units
     QUANTITY_RE = re.compile(r'^((?P<split>\d\d\d)g|(?P<_split1>[-−]?\d+\.\d+|10[-−]\d+)(g|s|m|N|V)([-−]?[1-4])?|(?P<_split2>\d*[-−]?\d+\.?\d*)([pnµμm]A|[µμmk]g|[kM]J|m[lL]|[nµμm]?M|[nµμmc]m|kN|[mk]V|[mkMG]?W|[mnpμµ]s|Hz|[Mm][Oo][Ll](e|ar)?s?|k?Pa|ppm|min)([-−]?[1-4])?)$')
     #: Don't split on hyphen if the prefix matches this regular expression
-    NO_SPLIT_PREFIX_ENDING = re.compile('(^\(.*\)|^[\d,\'"“”„‟‘’‚‛`´′″‴‵‶‷⁗Α-Ωα-ω]+|ano|ato|azo|boc|bromo|cbz|chloro|eno|fluoro|fmoc|ido|ino|io|iodo|mercapto|nitro|ono|oso|oxalo|oxo|oxy|phospho|telluro|tms|yl|ylen|ylene|yliden|ylidene|ylidyn|ylidyne)$', re.U)
+    NO_SPLIT_PREFIX_ENDING = re.compile(r'(^\(.*\)|^[\d,\'"“”„‟‘’‚‛`´′″‴‵‶‷⁗Α-Ωα-ω]+|ano|ato|azo|boc|bromo|cbz|chloro|eno|fluoro|fmoc|ido|ino|io|iodo|mercapto|nitro|ono|oso|oxalo|oxo|oxy|phospho|telluro|tms|yl|ylen|ylene|yliden|ylidene|ylidyn|ylidyne)$', re.U)
     #: Don't split on hyphen if prefix or suffix match this regular expression
-    NO_SPLIT_CHEM = re.compile('([\-α-ω]|\d+,\d+|\d+[A-Z]|^d\d\d?$|acetic|acetyl|acid|acyl|anol|azo|benz|bromo|carb|cbz|chlor|cyclo|ethan|ethyl|fluoro|fmoc|gluc|hydro|idyl|indol|iene|ione|iodo|mercapto|n,n|nitro|noic|o,o|oxalo|oxo|oxy|oyl|onyl|phen|phth|phospho|pyrid|telluro|tetra|tms|ylen|yli|zole|alpha|beta|gamma|delta|epsilon|theta|kappa|lambda|sigma|omega)', re.U | re.I)
+    NO_SPLIT_CHEM = re.compile(r'([-α-ω]|\d+,\d+|\d+[A-Z]|^d\d\d?$|acetic|acetyl|acid|acyl|anol|azo|benz|bromo|carb|cbz|chlor|cyclo|ethan|ethyl|fluoro|fmoc|gluc|hydro|idyl|indol|iene|ione|iodo|mercapto|n,n|nitro|noic|o,o|oxalo|oxo|oxy|oyl|onyl|phen|phth|phospho|pyrid|telluro|tetra|tms|ylen|yli|zole|alpha|beta|gamma|delta|epsilon|theta|kappa|lambda|sigma|omega)', re.U | re.I)
     #: Don't split on hyphen if the prefix is one of these sequences
     NO_SPLIT_PREFIX = {
         'e', 'a', 'u', 'x', 'agro', 'ante', 'anti', 'arch', 'be', 'bi', 'bio', 'co', 'counter', 'cross', 'cyber',
@@ -562,12 +564,7 @@ class ChemWordTokenizer(WordTokenizer):
     NO_SPLIT = {'°c'}
 
     def get_additional_regex(self, sentence):
-        additional_regex = [self.QUANTITY_RE]
-        quantity_re = sentence.quantity_re
-        if quantity_re:
-            additional_regex.append(quantity_re)
-            # print('quantity re added')
-        return additional_regex
+        return [self.QUANTITY_RE]
 
     def _closing_bracket_index(self, text, bpair=('(', ')')):
         """Return the index of the closing bracket that matches the opening bracket at the start of the text."""
@@ -673,7 +670,7 @@ class ChemWordTokenizer(WordTokenizer):
             return self._split_span(span, 2, 1)
 
         # Split things like \d+\.\d+([a-z]+) e.g. UV-vis/IR peaks with bracketed strength/shape
-        m = re.match('^(\d+\.\d+|\d{3,})(\([a-z]+\))$', text, re.I)
+        m = re.match(r'^(\d+\.\d+|\d{3,})(\([a-z]+\))$', text, re.I)
         if m:
             return self._split_span(span, m.start(2), 1)
 
@@ -720,7 +717,7 @@ class ChemWordTokenizer(WordTokenizer):
                     # If preceding is -, split around -> unless in chemical name
                     if not text == '->' and not self._is_saccharide_arrow(before[:-1], after):
                         return self._split_span(span, i-1, 2)
-            elif char is '→' and not self._is_saccharide_arrow(before, after):
+            elif char == '→' and not self._is_saccharide_arrow(before, after):
                 # TODO: 'is' should be '=='... this never splits!?
                 # Split around → unless in chemical name
                 return self._split_span(span, i, 1)
@@ -935,90 +932,3 @@ class FineWordTokenizer(WordTokenizer):
 
         # Perform all normal WordTokenizer splits
         return super(FineWordTokenizer, self)._subspan(s, span, nextspan, additional_regex)
-
-
-class BertWordTokenizer(ChemWordTokenizer):
-    """
-    A word tokenizer for BERT with some additional allowances in case one wants to override its choices.
-    Concrete overrides that are used in CDE include not splitting if it seems like a decimal point is in the
-    middle of a number, and splitting values and units.
-    """
-
-    do_not_split = []
-    do_not_split_if_in_num = [".", ","]
-
-    def __init__(self, split_last_stop=True, path=None, lowercase=True):
-        super().__init__(split_last_stop)
-        if path is None:
-            path = find_data('models/scibert_uncased_vocab-1.0.txt')
-        # TODO: It's maybe worth replacing with the transformers library tokenizers.
-        self.tokenizer = BertWordPieceTokenizer(path, lowercase=lowercase)
-
-    def span_tokenize(self, s, additional_regex=None):
-        output = self.tokenizer.encode(str(s))
-        offsets = output.offsets[1: -1]
-        given_tokens = output.tokens[1: -1]
-        current_span = (0, 0)
-        spans = []
-        i = 0
-        zipped = [el for el in zip(offsets, given_tokens)]
-
-        while i < len(zipped):
-            offset, token = zipped[i]
-
-            # If symbol is in do_not_split and it's part of a word, i.e. it's not surrounded
-            # by whitespace, then don't split it
-            if (s[offset[0]: offset[1]] in self.do_not_split_if_in_num and offset[0] == current_span[1]
-               and i < len(zipped) - 1 and zipped[i + 1][0][0] == offset[1]
-               and re.match("\d+$", s[zipped[i + 1][0][0]: zipped[i + 1][0][1]])):
-                i += 1
-                offset, token = zipped[i]
-                current_span = (current_span[0], offset[1])
-            # If symbol is in do_not_split and it's part of a word, i.e. it's not surrounded
-            # by whitespace, then don't split it
-            elif (s[offset[0]: offset[1]] in self.do_not_split and offset[0] == current_span[1]
-               and i < len(zipped) - 1 and zipped[i + 1][0][0] == offset[1]):
-                i += 1
-                offset, token = zipped[i]
-                current_span = (current_span[0], offset[1])
-            # Prevent splitting of negative numbers, but allow splitting of ranges such as 0.5-1.0
-            # and cases like 5-Bromo-6-Penda...
-            elif (s[offset[0]: offset[1]] == "-"
-               and i < len(zipped) - 1 and zipped[i + 1][0][0] == offset[1]
-               and re.match(r"\d+$", s[zipped[i + 1][0][0]: zipped[i + 1][0][1]])
-               and (i == 0
-                    or not (zipped[i - 1][0][1] == offset[0]
-                        and re.match(r"\d+$", s[zipped[i - 1][0][0]: zipped[i - 1][0][1]])))
-               and (i >= len(zipped) - 2
-                    or not (zipped[i + 2][0][0] == zipped[i + 1][0][1]
-                        and s[zipped[i + 2][0][0]: zipped[i + 2][0][1]] == "-"))):
-                i += 1
-                if current_span != (0, 0):
-                    spans.append(current_span)
-                current_span = offset
-                offset, token = zipped[i]
-                current_span = (current_span[0], offset[1])
-            # If the token is a subword, as defined by BERT, then merge it with the previous token
-            elif len(token) > 2 and token[:2] == "##":
-                current_span = (current_span[0], offset[1])
-            # Otherwise, split it
-            else:
-                if current_span != (0, 0):
-                    spans.append(current_span)
-                current_span = offset
-            i += 1
-
-        spans.append(current_span)
-
-        # Perform additional tokenisation as required by the additional regex
-        if additional_regex is not None:
-            i = 0
-            while i < len(spans):
-                subspans = self.handle_additional_regex(s, spans[i], spans[i + 1] if i + 1 < len(spans) else None, additional_regex)
-                if subspans is None:
-                    subspans = [spans[i]]
-                spans[i:i + 1] = [subspan for subspan in subspans if subspan[1] - subspan[0] > 0]
-                if len(subspans) == 1:
-                    i += 1
-
-        return spans

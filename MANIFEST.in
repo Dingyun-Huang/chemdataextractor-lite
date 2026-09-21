@@ -1,11 +1,5 @@
-include CHANGELOG.md
-include CONTRIBUTING.md
 include LICENSE
-include README.rst
-include requirements.txt
-recursive-include examples *.ipynb
-recursive-include requirements *
-recursive-include scripts *
-recursive-include tests *
-prune examples/.ipynb_checkpoints
+include README.md
+recursive-include chemdataextractor/data *.pickle *.md
+recursive-include tests/data *
 global-exclude *.py[cod] __pycache__ *.so *.dylib

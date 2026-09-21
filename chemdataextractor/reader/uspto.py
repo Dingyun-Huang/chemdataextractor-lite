@@ -119,7 +119,13 @@ class UsptoXmlReader(XmlReader):
             r.extend([Cell('')] * (len(max(rows, key=len)) - len(r)))
         rows = [r for r in rows if any(r)]
 
-        tab = Table(label=label, caption=caption or Caption(''), headings=hrows, rows=rows, footnotes=footnotes, id=el.get('id', None))
+        tab = Table(
+            label=label,
+            caption=caption or Caption(''),
+            table_data=hrows + rows,
+            footnotes=footnotes,
+            id=el.get('id', None),
+        )
         return [tab]
 
     def _parse_table_rows(self, els, refs, specials):

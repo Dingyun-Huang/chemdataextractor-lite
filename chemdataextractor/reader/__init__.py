@@ -19,6 +19,7 @@ from .rsc import RscHtmlReader
 from .nlm import NlmXmlReader
 from .uspto import UsptoXmlReader
 from .springer_jats import SpringerJatsReader
+from .springer import SpringerHtmlReader, SpringerMaterialsHtmlReader
 
 
 DEFAULT_READERS = [
@@ -28,9 +29,18 @@ DEFAULT_READERS = [
     UsptoXmlReader(),
     CsspHtmlReader(),
     ElsevierXmlReader(),
+    SpringerJatsReader(),
+    SpringerHtmlReader(),
+    SpringerMaterialsHtmlReader(),
     XmlReader(),
     HtmlReader(),
     PdfReader(),
     PlainTextReader(),
-    SpringerJatsReader(),
+]
+
+__all__ = [
+    "AcsHtmlReader", "CsspHtmlReader", "DEFAULT_READERS", "ElsevierXmlReader",
+    "HtmlReader", "NlmXmlReader", "PdfReader", "PlainTextReader", "RscHtmlReader",
+    "SpringerHtmlReader", "SpringerJatsReader", "SpringerMaterialsHtmlReader",
+    "UsptoXmlReader", "XmlReader",
 ]

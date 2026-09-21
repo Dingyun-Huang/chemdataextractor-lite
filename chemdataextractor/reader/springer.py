@@ -15,7 +15,7 @@ from lxml.html import HTMLParser
 from ..text import get_encoding
 from .markup import HtmlReader, XmlReader
 from ..scrape.clean import clean, Cleaner, strip_html
-from ..scrape.pub.springer import tidy_springer_references
+from ._helpers import tidy_springer_references
 
 clean_springer_html = Cleaner(fix_whitespace=True, strip_xpath='.//sub | .//em | .//strong')
 

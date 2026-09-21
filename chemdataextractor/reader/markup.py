@@ -39,11 +39,16 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
     #: A ``Cleaner`` instance to
     cleaners = [clean]
 
+    #: Preserve each selected table's markup before the cleaners modify the tree.
+    preserve_raw_table_markup = False
+    raw_table_markup_method = "xml"
+
     root_css = 'html'
     title_css = 'h1'
     heading_css = 'h2, h3, h4, h5, h6'
     table_css = 'table'
     table_caption_css = 'caption'
+    table_label_css = None
     table_head_row_css = 'thead tr'
     table_body_row_css = 'tbody tr'
     table_cell_css = 'th, td'
@@ -179,8 +184,10 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
             rows.append([])
             for col in sorted(hdict[row]):
                 rows[-1].append(hdict[row][col])
-        for r in rows:
-            r.extend([Cell('')] * (len(max(rows, key=len)) - len(r)))
+        if rows:
+            width = len(max(rows, key=len))
+            for row in rows:
+                row.extend([Cell('')] * (width - len(row)))
         rows = [r for r in rows if any(r)]
         return rows
 
@@ -211,13 +218,21 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
         caption_css = self._css(self.table_caption_css, el)
         caption = self._parse_text(caption_css[0], refs=refs, specials=specials, element_cls=Caption)[0] if caption_css else Caption('')
         hrows= self._parse_table_rows(self._css(self.table_head_row_css, el), refs=refs, specials=specials)
-        rows = rows = self._parse_table_rows(self._css(self.table_body_row_css, el), refs=refs, specials=specials)
-        data = []
-        for hr in hrows:
-            data.append([i.text.strip() for i in hr])
-        for r in rows:
-            data.append([i.text.strip() for i in r])
-        table = Table(caption, table_data=data)
+        rows = self._parse_table_rows(self._css(self.table_body_row_css, el), refs=refs, specials=specials)
+        data = hrows + rows
+        footnotes = self._parse_table_footnotes(
+            self._css(self.table_footnote_css, el), refs=refs, specials=specials
+        )
+        label_nodes = self._css(self.table_label_css, el) if self.table_label_css else []
+        label = "".join(label_nodes[0].itertext()).strip() if label_nodes else None
+        table = Table(
+            caption,
+            label=label,
+            table_data=data,
+            footnotes=footnotes,
+            raw_markup=self._raw_table_markup.get(el),
+            id=el.get("id"),
+        )
 
         return [table]
 
@@ -262,6 +277,8 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
         return result
 
     def _css(self, query, root):
+        if not query:
+            return []
         return self._xpath(CssXmlTranslator().css_to_xpath(query), root)
 
     def _is_inline(self, element):
@@ -282,7 +299,25 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
         if root is None:
             raise ReaderError
 
-        root = self._css(self.root_css, root)[0]
+        roots = self._css(self.root_css, root)
+        if roots:
+            root = roots[0]
+        elif self.root_css in {"*", etree.QName(root).localname}:
+            # CSS selection does not match a namespaced root without an explicit prefix.
+            root = root
+        else:
+            raise ReaderError(f"Expected root matching {self.root_css!r}")
+        self._raw_table_markup = {}
+        if self.preserve_raw_table_markup:
+            self._raw_table_markup = {
+                table: etree.tostring(
+                    table,
+                    encoding="unicode",
+                    method=self.raw_table_markup_method,
+                    with_tail=False,
+                )
+                for table in self._css(self.table_css, root)
+            }
         for cleaner in self.cleaners:
             cleaner(root)
         specials = {}
@@ -318,6 +353,8 @@ class LxmlReader(BaseReader, metaclass=ABCMeta):
 class XmlReader(LxmlReader):
     """Reader for generic XML documents."""
 
+    root_css = "*"
+
     def detect(self, fstring, fname=None):
         """"""
         if fname and not fname.endswith('.xml'):
@@ -331,6 +368,8 @@ class XmlReader(LxmlReader):
 
 class HtmlReader(LxmlReader):
     """Reader for generic HTML documents."""
+
+    raw_table_markup_method = "html"
 
     def detect(self, fstring, fname=None):
         """"""

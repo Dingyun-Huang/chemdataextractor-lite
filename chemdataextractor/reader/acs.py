@@ -27,6 +27,7 @@ class AcsHtmlReader(HtmlReader):
     heading_css = 'h2, h3, h4, h5, h6, .title1, span.title2, span.title3'
     table_css = '.NLM_table-wrap'
     table_caption_css = '.NLM_caption'
+    table_label_css = '.NLM_label'
     table_footnote_css = '.footnote'
     figure_css = '.figure'
     figure_caption_css = '.caption'
